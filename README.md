@@ -10,3 +10,7 @@ Dynamic multi-user Next.js dashboard for the 60-day stabilization program.
 4. Deploy through the connected Vercel Git integration.
 
 The first registered account becomes Admin. Later accounts begin as Viewer and can be promoted to Editor or Admin.
+
+## Deployment
+
+Production deployments are automatically triggered from the `main` branch through Vercel.
