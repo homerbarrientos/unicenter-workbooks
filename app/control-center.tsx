@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   BarChart3,
+  BriefcaseBusiness,
   CheckCircle2,
   ChevronRight,
   Clock3,
@@ -24,6 +25,7 @@ import {
 import ARDailyMonitor from "@/app/ar-daily-monitor";
 import ARExecutiveSummary from "@/app/ar-executive-summary";
 import ContextDiagram from "@/app/context-diagram";
+import PresalesBidManagement from "@/app/presales-bid-management";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -74,6 +76,7 @@ type R = {
 };
 const nav = [
   ["context", "0. Context Diagram", Network],
+  ["presales", "1. Pre-Sales & Bid", BriefcaseBusiness],
   ["dashboard", "Executive Dashboard", BarChart3],
   ["plan", "Master Plan", Target],
   ["action", "Action Tracker", CheckCircle2],
@@ -251,6 +254,8 @@ export default function ControlCenter({
             <p>
               {page === "context"
                 ? "CUSTOMER INTERACTION FRAMEWORK"
+                : page === "presales"
+                  ? "SOP WORKFLOW & KPI MONITORING"
                 : page === "finance" || page === "procurement"
                 ? "30-DAY ASSESSMENT PROGRAM"
                 : page === "ar-monitor"
@@ -267,6 +272,8 @@ export default function ControlCenter({
         </header>
         {page === "context" ? (
           <ContextDiagram onNavigate={setPage} />
+        ) : page === "presales" ? (
+          <PresalesBidManagement />
         ) : page === "dashboard" ? (
           <Dashboard metrics={metrics} rows={rows} params={params} due={due} />
         ) : page === "parameters" ? (
