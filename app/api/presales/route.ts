@@ -6,15 +6,21 @@ const projectFields = [
 ] as const;
 
 async function snapshot(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const [{ data: me, error: profileError }, { data: templates, error: templateError }, { data: projects, error: projectError }, { data: history, error: historyError }] = await Promise.all([
+  const [{ data: me, error: profileError }, { data: templates, error: templateError }, { data: projects, error: projectError }, { data: history, error: historyError }, { data: attachmentRows, error: attachmentError }] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", userId).single(),
     supabase.from("presales_stage_templates").select("*").eq("active", true).order("sequence_no"),
     supabase.from("presales_projects").select("*, current_stage:presales_stage_templates(stage_name,sequence_no,accountable_group)").order("updated_at", { ascending: false }),
     supabase.from("presales_stage_history").select("*, stage:presales_stage_templates(*)").order("updated_at", { ascending: false }),
+    supabase.from("presales_attachments").select("*").order("created_at", { ascending: false }),
   ]);
-  const error = profileError || templateError || projectError || historyError;
+  const attachmentTableMissing = attachmentError?.code === "42P01";
+  const error = profileError || templateError || projectError || historyError || (attachmentTableMissing ? null : attachmentError);
   if (error) throw error;
-  return { role: me.role, templates: templates || [], projects: projects || [], history: history || [] };
+  const attachments = await Promise.all((attachmentRows || []).map(async attachment => {
+    const { data } = await supabase.storage.from("presales-documents").createSignedUrl(attachment.storage_path, 3600);
+    return { ...attachment, download_url: data?.signedUrl || "" };
+  }));
+  return { role: me.role, templates: templates || [], projects: projects || [], history: history || [], attachments };
 }
 
 export async function GET() {
