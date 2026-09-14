@@ -141,6 +141,17 @@ const money = (n: number) =>
 const csv = (value: unknown) =>
   `"${String(value ?? "").replaceAll('"', '""')}"`;
 const today = () => new Date().toISOString().slice(0, 10);
+const daysSince = (date: string | null | undefined) =>
+  date
+    ? Math.max(
+        0,
+        Math.floor(
+          (Date.parse(`${today()}T00:00:00Z`) -
+            Date.parse(`${date.slice(0, 10)}T00:00:00Z`)) /
+            86400000,
+        ),
+      )
+    : 0;
 
 export default function PresalesBidManagement() {
   const [data, setData] = useState<Payload | null>(null),
@@ -148,7 +159,10 @@ export default function PresalesBidManagement() {
     [filter, setFilter] = useState("All"),
     [edit, setEdit] = useState<Project | null>(null),
     [selected, setSelected] = useState<Project | null>(null),
-    [stageEdit, setStageEdit] = useState<Stage | null>(null);
+    [stageEdit, setStageEdit] = useState<Stage | null>(null),
+    [detailReport, setDetailReport] = useState<"overdue" | "client" | null>(
+      null,
+    );
   const load = () =>
     fetch("/api/presales")
       .then(async (r) => {
@@ -175,6 +189,26 @@ export default function PresalesBidManagement() {
         .toLowerCase()
         .includes(query.toLowerCase()),
     );
+  const internalOverdue = useMemo(
+    () =>
+      history.filter(
+        (h) =>
+          h.stage.control_type !== "Client" &&
+          ["In Progress", "Blocked"].includes(h.status) &&
+          !!h.due_date &&
+          h.due_date < today(),
+      ),
+    [history],
+  );
+  const clientWaiting = useMemo(
+    () =>
+      history.filter(
+        (h) =>
+          h.stage.control_type === "Client" &&
+          ["In Progress", "Blocked"].includes(h.status),
+      ),
+    [history],
+  );
   const stats = useMemo(() => {
     const active = projects.filter((p) => p.bid_status === "Active"),
       decided = projects.filter(
@@ -186,17 +220,7 @@ export default function PresalesBidManagement() {
         (h) =>
           !h.due_date || (!!h.completed_date && h.completed_date <= h.due_date),
       ),
-      overdue = internal.filter(
-        (h) =>
-          ["In Progress", "Blocked"].includes(h.status) &&
-          !!h.due_date &&
-          h.due_date < today(),
-      ),
-      clientWaiting = history.filter(
-        (h) =>
-          h.stage.control_type === "Client" &&
-          ["In Progress", "Blocked"].includes(h.status),
-      );
+      overdue = internalOverdue;
     return {
       active: active.length,
       pipeline: active.reduce((s, p) => s + Number(p.opportunity_value), 0),
@@ -209,7 +233,7 @@ export default function PresalesBidManagement() {
       overdue: overdue.length,
       clientWaiting: clientWaiting.length,
     };
-  }, [projects, history]);
+  }, [projects, history, internalOverdue, clientWaiting]);
   async function save(action: string, value: Project | Stage) {
     const res = await fetch("/api/presales", {
         method: "POST",
@@ -306,12 +330,24 @@ export default function PresalesBidManagement() {
           <span>Internal on-time</span>
           <b>{stats.onTime.toFixed(0)}%</b>
         </article>
-        <article className={stats.overdue ? "danger" : ""}>
+        <article
+          className={`${stats.overdue ? "danger" : ""} clickable`}
+          role="button"
+          tabIndex={0}
+          onClick={() => setDetailReport("overdue")}
+          onKeyDown={(e) => e.key === "Enter" && setDetailReport("overdue")}
+        >
           <AlertTriangle />
           <span>Internal overdue</span>
           <b>{stats.overdue}</b>
         </article>
-        <article>
+        <article
+          className="clickable"
+          role="button"
+          tabIndex={0}
+          onClick={() => setDetailReport("client")}
+          onKeyDown={(e) => e.key === "Enter" && setDetailReport("client")}
+        >
           <span>Client waiting</span>
           <b>{stats.clientWaiting}</b>
         </article>
@@ -406,6 +442,16 @@ export default function PresalesBidManagement() {
                         Due {current.due_date}
                       </small>
                     )}
+                    {current && internalOverdue.some((h) => h.id === current.id) && (
+                      <small className="tracking-badge overdue-badge">
+                        Overdue · {daysSince(current.due_date)} day{daysSince(current.due_date) === 1 ? "" : "s"}
+                      </small>
+                    )}
+                    {current && clientWaiting.some((h) => h.id === current.id) && (
+                      <small className="tracking-badge waiting-badge">
+                        Waiting on client · {daysSince(current.actual_start || current.planned_start || current.updated_at)} day{daysSince(current.actual_start || current.planned_start || current.updated_at) === 1 ? "" : "s"}
+                      </small>
+                    )}
                   </td>
                   <td>{p.expected_bid_date || "—"}</td>
                   <td>
@@ -475,7 +521,84 @@ export default function PresalesBidManagement() {
         onSave={(v) => save("stage", v)}
         onFilesChanged={load}
       />
+      <KpiDetailReport
+        kind={detailReport}
+        stages={detailReport === "overdue" ? internalOverdue : clientWaiting}
+        projects={projects}
+        onClose={() => setDetailReport(null)}
+        onTrack={(project) => {
+          setDetailReport(null);
+          setSelected(project);
+        }}
+      />
     </section>
+  );
+}
+
+function KpiDetailReport({
+  kind,
+  stages,
+  projects,
+  onClose,
+  onTrack,
+}: {
+  kind: "overdue" | "client" | null;
+  stages: Stage[];
+  projects: Project[];
+  onClose: () => void;
+  onTrack: (project: Project) => void;
+}) {
+  const isOverdue = kind === "overdue";
+  return (
+    <Dialog open={!!kind} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="kpi-report-dialog">
+        <DialogHeader>
+          <DialogTitle>
+            {isOverdue ? "Team / Shared Overdue" : "Waiting on Client"}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="kpi-report-description">
+          {isOverdue
+            ? "Internal or shared stages that are In Progress or Blocked beyond their due date."
+            : "Client-controlled stages currently marked In Progress or Blocked."}
+        </p>
+        <div className="kpi-report-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Bid / Project</th>
+                <th>Customer</th>
+                <th>Stage</th>
+                <th>Status</th>
+                <th>{isOverdue ? "Due / Overdue" : "Waiting since / Days"}</th>
+                <th>Owner / Responsible</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stages.map((stage) => {
+                const project = projects.find((p) => p.id === stage.project_id);
+                const referenceDate = isOverdue
+                  ? stage.due_date
+                  : stage.actual_start || stage.planned_start || stage.updated_at;
+                return (
+                  <tr key={stage.id}>
+                    <td><b>{project?.bid_reference || "—"}</b><span>{project?.project_name}</span></td>
+                    <td>{project?.customer_name || "—"}</td>
+                    <td><b>{stage.stage.sequence_no}. {stage.stage.stage_name}</b><span>{stage.stage.control_type} control</span></td>
+                    <td><span className={`status ${stage.status.toLowerCase().replaceAll(" ", "-")}`}>{stage.status}</span></td>
+                    <td><b>{referenceDate?.slice(0, 10) || "—"}</b><span>{daysSince(referenceDate)} day{daysSince(referenceDate) === 1 ? "" : "s"} {isOverdue ? "overdue" : "waiting"}</span></td>
+                    <td><b>{project?.owner || "—"}</b><span>{stage.assigned_to || stage.stage.accountable_group}</span></td>
+                    <td>{project && <Button variant="outline" size="sm" onClick={() => onTrack(project)}><Eye /> Track</Button>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {!stages.length && <div className="empty">No matching bids.</div>}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
