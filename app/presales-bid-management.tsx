@@ -71,6 +71,13 @@ type Stage = {
   actual_start: string | null;
   completed_date: string | null;
   documents_complete: boolean;
+  reconsideration_reason: string;
+  filing_date: string | null;
+  resolution_date: string | null;
+  performance_bond_received_date: string | null;
+  ntp_received_date: string | null;
+  po_acknowledged_date: string | null;
+  completed_check_ids?: number[];
   notes: string;
   updated_by_email: string;
   updated_at: string;
@@ -87,12 +94,27 @@ type Attachment = {
   created_at: string;
   download_url: string;
 };
+type DocumentRequirement = {
+  id: number;
+  stage_id: number;
+  document_name: string;
+  required: boolean;
+  sequence_no: number;
+};
+type DocumentCheck = {
+  id: number;
+  history_id: number;
+  requirement_id: number;
+  completed: boolean;
+};
 type Payload = {
   role: string;
   templates: Template[];
   projects: Project[];
   history: Stage[];
   attachments: Attachment[];
+  document_requirements: DocumentRequirement[];
+  document_checks: DocumentCheck[];
 };
 const blank: Project = {
   bid_reference: "",
@@ -156,21 +178,26 @@ export default function PresalesBidManagement() {
       decided = projects.filter(
         (p) => p.bid_status === "Won" || p.bid_status === "Lost",
       ),
-      completed = history.filter((h) => h.status === "Completed"),
+      internal = history.filter((h) => h.stage.control_type !== "Client"),
+      completed = internal.filter((h) => h.status === "Completed"),
       onTime = completed.filter(
         (h) =>
           !h.due_date || (!!h.completed_date && h.completed_date <= h.due_date),
       ),
-      overdue = history.filter(
+      overdue = internal.filter(
         (h) =>
           ["In Progress", "Blocked"].includes(h.status) &&
           !!h.due_date &&
           h.due_date < today(),
+      ),
+      clientWaiting = history.filter(
+        (h) =>
+          h.stage.control_type === "Client" &&
+          ["In Progress", "Blocked"].includes(h.status),
       );
     return {
       active: active.length,
       pipeline: active.reduce((s, p) => s + Number(p.opportunity_value), 0),
-      won: projects.filter((p) => p.bid_status === "Won").length,
       winRate: decided.length
         ? (projects.filter((p) => p.bid_status === "Won").length /
             decided.length) *
@@ -178,6 +205,7 @@ export default function PresalesBidManagement() {
         : 0,
       onTime: completed.length ? (onTime.length / completed.length) * 100 : 0,
       overdue: overdue.length,
+      clientWaiting: clientWaiting.length,
     };
   }, [projects, history]);
   async function save(action: string, value: Project | Stage) {
@@ -273,17 +301,17 @@ export default function PresalesBidManagement() {
           <b>{stats.winRate.toFixed(0)}%</b>
         </article>
         <article>
-          <span>On-time stages</span>
+          <span>Internal on-time</span>
           <b>{stats.onTime.toFixed(0)}%</b>
         </article>
         <article className={stats.overdue ? "danger" : ""}>
           <AlertTriangle />
-          <span>Overdue stages</span>
+          <span>Internal overdue</span>
           <b>{stats.overdue}</b>
         </article>
         <article>
-          <span>Won projects</span>
-          <b>{stats.won}</b>
+          <span>Client waiting</span>
+          <b>{stats.clientWaiting}</b>
         </article>
       </div>
       <div className="toolbar">
@@ -426,6 +454,12 @@ export default function PresalesBidManagement() {
         item={stageEdit}
         attachments={(data.attachments || []).filter(
           (a) => a.history_id === stageEdit?.id,
+        )}
+        requirements={(data.document_requirements || []).filter(
+          (r) => r.stage_id === stageEdit?.stage_id,
+        )}
+        checks={(data.document_checks || []).filter(
+          (c) => c.history_id === stageEdit?.id,
         )}
         onClose={() => setStageEdit(null)}
         onSave={(v) => save("stage", v)}
@@ -688,12 +722,16 @@ function Tracker({
 function StageDialog({
   item,
   attachments,
+  requirements,
+  checks,
   onClose,
   onSave,
   onFilesChanged,
 }: {
   item: Stage | null;
   attachments: Attachment[];
+  requirements: DocumentRequirement[];
+  checks: DocumentCheck[];
   onClose: () => void;
   onSave: (s: Stage) => void;
   onFilesChanged: () => void;
@@ -705,6 +743,8 @@ function StageDialog({
           key={item.id}
           item={item}
           attachments={attachments}
+          requirements={requirements}
+          checks={checks}
           onClose={onClose}
           onSave={onSave}
           onFilesChanged={onFilesChanged}
@@ -716,12 +756,16 @@ function StageDialog({
 function StageForm({
   item,
   attachments,
+  requirements,
+  checks,
   onClose,
   onSave,
   onFilesChanged,
 }: {
   item: Stage;
   attachments: Attachment[];
+  requirements: DocumentRequirement[];
+  checks: DocumentCheck[];
   onClose: () => void;
   onSave: (s: Stage) => void;
   onFilesChanged: () => void;
@@ -729,6 +773,7 @@ function StageForm({
   const [v, setV] = useState<Stage>(() => ({
       ...item,
       outcome: item.outcome || "Pending",
+      completed_check_ids: checks.filter((c) => c.completed).map((c) => c.id),
     })),
     [uploading, setUploading] = useState(false);
   const field = (key: keyof Stage, value: unknown) =>
@@ -740,6 +785,13 @@ function StageForm({
       outcome: status === "Completed" ? current.outcome || "Pending" : "Pending",
       completed_date:
         status === "Completed" ? current.completed_date : null,
+    }));
+  const toggleCheck = (checkId: number, completed: boolean) =>
+    setV((current) => ({
+      ...current,
+      completed_check_ids: completed
+        ? [...new Set([...(current.completed_check_ids || []), checkId])]
+        : (current.completed_check_ids || []).filter((id) => id !== checkId),
     }));
   async function upload(files: FileList | null) {
     if (!files?.length) return;
@@ -869,14 +921,35 @@ function StageForm({
             onChange={(e) => field("completed_date", e.target.value || null)}
           />
         </label>
-        <label className="checkbox wide">
-          <input
-            type="checkbox"
-            checked={v.documents_complete}
-            onChange={(e) => field("documents_complete", e.target.checked)}
-          />{" "}
-          Required documents completed
-        </label>
+        {v.stage.sequence_no === 7 && (
+          <>
+            <label className="wide">
+              Reconsideration reason
+              <textarea
+                value={v.reconsideration_reason || ""}
+                onChange={(e) => field("reconsideration_reason", e.target.value)}
+              />
+            </label>
+            <label>
+              Filing date
+              <Input type="date" value={v.filing_date || ""} onChange={(e) => field("filing_date", e.target.value || null)} />
+            </label>
+            <label>
+              Resolution date
+              <Input type="date" value={v.resolution_date || ""} onChange={(e) => field("resolution_date", e.target.value || null)} />
+            </label>
+          </>
+        )}
+        {[
+          [15, "performance_bond_received_date", "Performance bond received"],
+          [19, "ntp_received_date", "NTP received"],
+          [20, "po_acknowledged_date", "PO acknowledged"],
+        ].filter(([sequence]) => sequence === v.stage.sequence_no).map(([, key, label]) => (
+          <label key={String(key)}>
+            {label}
+            <Input type="date" value={String(v[key as keyof Stage] || "")} onChange={(e) => field(key as keyof Stage, e.target.value || null)} />
+          </label>
+        ))}
         <label className="wide">
           Notes / history entry
           <textarea
@@ -885,6 +958,28 @@ function StageForm({
           />
         </label>
       </div>
+      <section className="document-checklist">
+        <div>
+          <b>Document checklist</b>
+          <small>Every required item must be checked before this stage can be completed.</small>
+        </div>
+        {requirements.map((requirement) => {
+          const check = checks.find((c) => c.requirement_id === requirement.id);
+          return (
+            <label key={requirement.id}>
+              <input
+                type="checkbox"
+                checked={!!check && (v.completed_check_ids || []).includes(check.id)}
+                disabled={!check}
+                onChange={(e) => check && toggleCheck(check.id, e.target.checked)}
+              />
+              <span>{requirement.document_name}</span>
+              {requirement.required && <small>Required</small>}
+            </label>
+          );
+        })}
+        {!requirements.length && <p>No document requirements configured.</p>}
+      </section>
       <section className="attachment-box">
         <div className="attachment-heading">
           <div>
