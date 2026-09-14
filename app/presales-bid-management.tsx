@@ -510,27 +510,37 @@ function ProjectForm({
           {item.id ? "Edit bid opportunity" : "Add bid opportunity"}
         </DialogTitle>
       </DialogHeader>
-      <div className="form-grid">
+      <form
+        id="presales-project-form"
+        className="form-grid"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave(v);
+        }}
+      >
         <label>
-          Bid reference
+          <span>Bid reference <b className="required-mark">*</b></span>
           <Input
             value={v.bid_reference}
             onChange={(e) => field("bid_reference", e.target.value)}
             placeholder="BID-2026-001"
+            required
           />
         </label>
         <label>
-          Customer
+          <span>Customer <b className="required-mark">*</b></span>
           <Input
             value={v.customer_name}
             onChange={(e) => field("customer_name", e.target.value)}
+            required
           />
         </label>
         <label className="wide">
-          Project name
+          <span>Project name <b className="required-mark">*</b></span>
           <Input
             value={v.project_name}
             onChange={(e) => field("project_name", e.target.value)}
+            required
           />
         </label>
         <label>
@@ -585,11 +595,12 @@ function ProjectForm({
           </Select>
         </label>
         <label>
-          Start date
+          <span>Start date <b className="required-mark">*</b></span>
           <Input
             type="date"
             value={v.start_date}
             onChange={(e) => field("start_date", e.target.value)}
+            required
           />
         </label>
         <label>
@@ -607,12 +618,12 @@ function ProjectForm({
             onChange={(e) => field("remarks", e.target.value)}
           />
         </label>
-      </div>
+      </form>
       <div className="dialog-actions">
-        <Button variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={() => onSave(v)}>Save bid</Button>
+        <Button type="submit" form="presales-project-form">Save bid</Button>
       </div>
     </DialogContent>
   );
