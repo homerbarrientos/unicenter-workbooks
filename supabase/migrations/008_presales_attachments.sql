@@ -22,10 +22,16 @@ values('presales-documents','presales-documents',false,15728640,array[
 ]) on conflict(id) do update set public=false,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
 
 alter table public.presales_attachments enable row level security;
+drop policy if exists "authenticated read presales attachments" on public.presales_attachments;
 create policy "authenticated read presales attachments" on public.presales_attachments for select to authenticated using(public.current_user_role() is not null);
+drop policy if exists "editors insert presales attachments" on public.presales_attachments;
 create policy "editors insert presales attachments" on public.presales_attachments for insert to authenticated with check(public.current_user_role() in('Admin','Editor') and uploaded_by=auth.uid());
+drop policy if exists "editors delete presales attachments" on public.presales_attachments;
 create policy "editors delete presales attachments" on public.presales_attachments for delete to authenticated using(public.current_user_role() in('Admin','Editor'));
 
+drop policy if exists "authenticated read presales files" on storage.objects;
 create policy "authenticated read presales files" on storage.objects for select to authenticated using(bucket_id='presales-documents' and public.current_user_role() is not null);
+drop policy if exists "editors upload presales files" on storage.objects;
 create policy "editors upload presales files" on storage.objects for insert to authenticated with check(bucket_id='presales-documents' and public.current_user_role() in('Admin','Editor'));
+drop policy if exists "editors delete presales files" on storage.objects;
 create policy "editors delete presales files" on storage.objects for delete to authenticated using(bucket_id='presales-documents' and public.current_user_role() in('Admin','Editor'));
