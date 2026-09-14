@@ -733,6 +733,14 @@ function StageForm({
     [uploading, setUploading] = useState(false);
   const field = (key: keyof Stage, value: unknown) =>
     setV((current) => ({ ...current, [key]: value }));
+  const updateStatus = (status: string) =>
+    setV((current) => ({
+      ...current,
+      status,
+      outcome: status === "Completed" ? current.outcome || "Pending" : "Pending",
+      completed_date:
+        status === "Completed" ? current.completed_date : null,
+    }));
   async function upload(files: FileList | null) {
     if (!files?.length) return;
     setUploading(true);
@@ -777,7 +785,7 @@ function StageForm({
       <div className="form-grid">
         <label>
           Status
-          <Select value={v.status} onValueChange={(x) => field("status", x)}>
+          <Select value={v.status} onValueChange={updateStatus}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -801,6 +809,7 @@ function StageForm({
             Outcome
             <Select
               value={v.outcome}
+              disabled={v.status !== "Completed"}
               onValueChange={(x) => field("outcome", x)}
             >
               <SelectTrigger>
@@ -815,7 +824,9 @@ function StageForm({
               </SelectContent>
             </Select>
             <small className="outcome-help">
-              Failed marks the overall bid Lost and skips all remaining stages.
+              {v.status === "Completed"
+                ? "Failed marks the overall bid Lost and skips all remaining stages."
+                : "Set the stage to Completed before selecting its outcome."}
             </small>
           </label>
         )}
