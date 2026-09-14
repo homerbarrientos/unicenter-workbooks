@@ -29,7 +29,8 @@ const stages: Stage[] = [
     number: "1",
     title: "Pre-Sales / Bid",
     subtitle: "Bid Staff",
-    status: "Planned",
+    status: "Live",
+    target: "presales",
     icon: BriefcaseBusiness,
     items: [
       "Accreditation requirements",
@@ -38,7 +39,7 @@ const stages: Stage[] = [
       "Bidding and legal documents",
       "Post-qualification and NOA requirements",
     ],
-    gaps: ["CRM form and tools", "NOA/NTP monitoring"],
+    gaps: ["Customer/project master integration", "Automated notifications"],
   },
   {
     number: "2",
@@ -139,7 +140,7 @@ export default function ContextDiagram({
           <UsersRound />
           <small>CENTRAL RECORD</small>
           <strong>Customer & Project</strong>
-          <span>Planned under Module 1</span>
+          <span>Connected through Module 1</span>
         </div>
 
         <div className="context-stages">
