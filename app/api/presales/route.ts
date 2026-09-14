@@ -23,6 +23,8 @@ async function snapshot(
     { data: projects, error: projectError },
     { data: history, error: historyError },
     { data: attachmentRows, error: attachmentError },
+    { data: documentRequirements, error: requirementError },
+    { data: documentChecks, error: checkError },
   ] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", userId).single(),
     supabase
@@ -44,6 +46,12 @@ async function snapshot(
       .from("presales_attachments")
       .select("*")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("presales_document_requirements")
+      .select("*")
+      .eq("active", true)
+      .order("sequence_no"),
+    supabase.from("presales_document_checks").select("*"),
   ]);
   const attachmentTableMissing = attachmentError?.code === "42P01";
   const error =
@@ -51,7 +59,9 @@ async function snapshot(
     templateError ||
     projectError ||
     historyError ||
-    (attachmentTableMissing ? null : attachmentError);
+    (attachmentTableMissing ? null : attachmentError) ||
+    requirementError ||
+    checkError;
   if (error) throw error;
   const attachments = await Promise.all(
     (attachmentRows || []).map(async (attachment) => {
@@ -67,6 +77,8 @@ async function snapshot(
     projects: projects || [],
     history: history || [],
     attachments,
+    document_requirements: documentRequirements || [],
+    document_checks: documentChecks || [],
   };
 }
 
@@ -122,6 +134,14 @@ export async function POST(request: Request) {
       p_completed_date: value.completed_date || null,
       p_documents_complete: Boolean(value.documents_complete),
       p_notes: value.notes || "",
+      p_completed_requirement_ids: value.completed_check_ids || [],
+      p_reconsideration_reason: value.reconsideration_reason || "",
+      p_filing_date: value.filing_date || null,
+      p_resolution_date: value.resolution_date || null,
+      p_performance_bond_received_date:
+        value.performance_bond_received_date || null,
+      p_ntp_received_date: value.ntp_received_date || null,
+      p_po_acknowledged_date: value.po_acknowledged_date || null,
     });
     error = result.error;
   } else {
