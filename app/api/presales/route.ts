@@ -71,8 +71,13 @@ async function snapshot(
       return { ...attachment, download_url: data?.signedUrl || "" };
     }),
   );
+  const nextBidNumber = (projects || []).reduce((highest, project) => {
+    const match = /^BID-UC-(\d+)$/.exec(project.bid_reference || "");
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0) + 1;
   return {
     role: me.role,
+    next_bid_reference: `BID-UC-${String(nextBidNumber).padStart(3, "0")}`,
     templates: templates || [],
     projects: projects || [],
     history: history || [],
@@ -174,9 +179,19 @@ export async function POST(request: Request) {
           .from("presales_projects")
           .update(value)
           .eq("id", source.id)
-      : await supabase
-          .from("presales_projects")
-          .insert({ ...value, created_by: user.id });
+      : await supabase.rpc("create_presales_project", {
+          p_bid_reference: value.bid_reference,
+          p_auto_reference: Boolean(source.auto_bid_reference),
+          p_customer_name: value.customer_name,
+          p_project_name: value.project_name,
+          p_opportunity_value: value.opportunity_value,
+          p_owner: value.owner,
+          p_priority: value.priority,
+          p_bid_status: value.bid_status,
+          p_start_date: value.start_date,
+          p_expected_bid_date: value.expected_bid_date,
+          p_remarks: value.remarks,
+        });
     error = result.error;
   }
   if (error) return Response.json({ error: error.message }, { status: 400 });
