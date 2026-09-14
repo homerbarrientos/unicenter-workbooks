@@ -154,9 +154,19 @@ export async function POST(request: Request) {
         return [key, String(raw ?? "").trim()];
       }),
     );
-    if (!value.bid_reference || !value.customer_name || !value.project_name)
+    const missing = [
+      ["Bid reference", value.bid_reference],
+      ["Customer", value.customer_name],
+      ["Project name", value.project_name],
+      ["Start date", value.start_date],
+    ]
+      .filter(([, fieldValue]) => !fieldValue)
+      .map(([label]) => label);
+    if (missing.length)
       return Response.json(
-        { error: "Bid reference, customer, and project name are required." },
+        {
+          error: `${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} required.`,
+        },
         { status: 400 },
       );
     const result = source.id
