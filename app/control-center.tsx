@@ -1,25 +1,18 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
   BarChart3,
   BriefcaseBusiness,
-  CheckCircle2,
   ChevronRight,
   Clock3,
-  Gauge,
   LayoutDashboard,
-  Landmark,
   LogOut,
   Menu,
-  Network,
   PackageSearch,
   Plus,
   ReceiptText,
   Search,
   Settings,
-  ShieldAlert,
-  Target,
   Users,
   X,
 } from "lucide-react";
@@ -78,20 +71,12 @@ type R = {
   reviewNotes?: string;
 };
 const nav = [
-  ["cockpit", "COCKPIT ONE", LayoutDashboard],
-  ["context", "0. Context Diagram", Network],
-  ["presales", "1. Pre-Sales & Bid", BriefcaseBusiness],
-  ["dashboard", "Executive Dashboard", BarChart3],
-  ["plan", "Master Plan", Target],
-  ["action", "Action Tracker", CheckCircle2],
-  ["risk", "Risk Register", ShieldAlert],
-  ["assessment", "Rapid Assessment", Gauge],
-  ["finance", "Finance & AR (30-Day)", Landmark],
-  ["ar-monitor", "AR Daily Monitor", ReceiptText],
+  ["cockpit", "Cockpit One", LayoutDashboard],
+  ["presales", "Opportunities & SOP", BriefcaseBusiness],
+  ["ar-monitor", "Billing & Collections", ReceiptText],
   ["procurement", "Inventory & Procurement", PackageSearch],
-  ["qbo", "QBO Roadmap", Activity],
-  ["parameters", "Parameters", Settings],
-  ["users", "Users & Roles", Users],
+  ["reports", "Reports", BarChart3],
+  ["crm-settings", "CRM Settings", Settings],
 ] as const;
 const blank: R = {
   type: "plan",
@@ -200,8 +185,8 @@ export default function ControlCenter({
   if (!data)
     return (
       <div className="loading">
-        <div>U2</div>
-        <p>Opening control center…</p>
+        <div>U1</div>
+        <p>Opening Cockpit One…</p>
       </div>
     );
   return (
@@ -209,10 +194,10 @@ export default function ControlCenter({
       <Toaster richColors />
       <aside className={menu ? "sidebar open" : "sidebar"}>
         <div className="brand">
-          <span>{page === "cockpit" ? "U1" : "U2"}</span>
+          <span>U1</span>
           <div>
             <strong>UNICENTER</strong>
-            <small>{page === "cockpit" ? "COCKPIT ONE" : "CONTROL CENTER"}</small>
+            <small>COCKPIT ONE</small>
           </div>
           <button onClick={() => setMenu(false)}>
             <X />
@@ -220,7 +205,7 @@ export default function ControlCenter({
         </div>
         <nav>
           {nav.map(([id, label, Icon]) =>
-            id === "users" && data.me.role !== "Admin" ? null : (
+            id === "crm-settings" && data.me.role !== "Admin" ? null : (
               <button
                 key={id}
                 className={page === id ? "active" : ""}
@@ -264,6 +249,10 @@ export default function ControlCenter({
                 ? "30-DAY ASSESSMENT PROGRAM"
                 : page === "procurement"
                   ? "PROJECT MATERIALS & PURCHASING"
+                : page === "reports"
+                  ? "REPORTING & ANALYTICS"
+                : page === "crm-settings"
+                  ? "ADMINISTRATION & CONFIGURATION"
                 : page === "ar-monitor"
                   ? "DAILY COLLECTION CONTROL"
                   : "60-DAY STABILIZATION PROGRAM"}
@@ -272,8 +261,8 @@ export default function ControlCenter({
           </div>
           <div className="day-pill">
             <Clock3 />
-            <span>Program starts</span>
-            <b>{fmt(start)}</b>
+            <span>Today</span>
+            <b>{fmt(new Date())}</b>
           </div>
         </header>}
         {page === "cockpit" ? (
@@ -284,6 +273,10 @@ export default function ControlCenter({
           <PresalesBidManagement />
         ) : page === "dashboard" ? (
           <Dashboard metrics={metrics} rows={rows} params={params} due={due} />
+        ) : page === "reports" ? (
+          <ReportsComingSoon />
+        ) : page === "crm-settings" && data.me.role === "Admin" ? (
+          <CRMSettings data={data} save={save} />
         ) : page === "parameters" ? (
           <Parameters data={data} save={save} />
         ) : page === "users" ? (
@@ -1218,6 +1211,50 @@ function RecordDialog({ item, params, onClose, onSave }: any) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+function ReportsComingSoon() {
+  return (
+    <section className="workspace">
+      <div className="section-intro">
+        <h2>Reports</h2>
+        <p>
+          CRM pipeline, billing and collections, and inventory reports will be
+          added here in the next phase.
+        </p>
+      </div>
+      <div className="data-card reports-coming-soon">
+        <BarChart3 />
+        <h3>Reports are coming soon</h3>
+        <p>Your current CRM transactions are already being captured for future reporting.</p>
+      </div>
+    </section>
+  );
+}
+function CRMSettings({ data, save }: any) {
+  const [tab, setTab] = useState<"parameters" | "users">("parameters");
+  return (
+    <>
+      <div className="crm-settings-tabs">
+        <Button
+          variant={tab === "parameters" ? "default" : "outline"}
+          onClick={() => setTab("parameters")}
+        >
+          <Settings /> Parameters
+        </Button>
+        <Button
+          variant={tab === "users" ? "default" : "outline"}
+          onClick={() => setTab("users")}
+        >
+          <Users /> Users &amp; Roles
+        </Button>
+      </div>
+      {tab === "parameters" ? (
+        <Parameters data={data} save={save} />
+      ) : (
+        <UserAdmin data={data} save={save} />
+      )}
+    </>
   );
 }
 function Parameters({ data, save }: any) {
