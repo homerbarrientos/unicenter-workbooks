@@ -190,7 +190,7 @@ export default function ControlCenter({
       </div>
     );
   return (
-    <div className={page === "cockpit" ? "app-shell cockpit-shell" : "app-shell"}>
+    <div className="app-shell cockpit-shell">
       <Toaster richColors />
       <aside className={menu ? "sidebar open" : "sidebar"}>
         <div className="brand">
@@ -234,7 +234,7 @@ export default function ControlCenter({
           </a>
         </div>
       </aside>
-      <main className={page === "cockpit" ? "cockpit-host" : ""}>
+      <main className={page === "cockpit" ? "cockpit-host" : "module-host"}>
         {page !== "cockpit" && <header>
           <button className="menu-btn" onClick={() => setMenu(true)}>
             <Menu />
