@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock3,
   Gauge,
+  LayoutDashboard,
   Landmark,
   LogOut,
   Menu,
@@ -25,6 +26,7 @@ import {
 import ARDailyMonitor from "@/app/ar-daily-monitor";
 import ARExecutiveSummary from "@/app/ar-executive-summary";
 import ContextDiagram from "@/app/context-diagram";
+import CRMCockpit from "@/app/crm-cockpit";
 import PresalesBidManagement from "@/app/presales-bid-management";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +77,7 @@ type R = {
   reviewNotes?: string;
 };
 const nav = [
+  ["cockpit", "COCKPIT ONE", LayoutDashboard],
   ["context", "0. Context Diagram", Network],
   ["presales", "1. Pre-Sales & Bid", BriefcaseBusiness],
   ["dashboard", "Executive Dashboard", BarChart3],
@@ -127,7 +130,7 @@ export default function ControlCenter({
   signOut: string;
 }) {
   const [data, setData] = useState<any>(),
-    [page, setPage] = useState("context"),
+    [page, setPage] = useState("cockpit"),
     [menu, setMenu] = useState(false),
     [edit, setEdit] = useState<R | null>(null),
     [query, setQuery] = useState(""),
@@ -201,14 +204,14 @@ export default function ControlCenter({
       </div>
     );
   return (
-    <div className="app-shell">
+    <div className={page === "cockpit" ? "app-shell cockpit-shell" : "app-shell"}>
       <Toaster richColors />
       <aside className={menu ? "sidebar open" : "sidebar"}>
         <div className="brand">
-          <span>U2</span>
+          <span>{page === "cockpit" ? "U1" : "U2"}</span>
           <div>
-            <strong>UNICENTER 2.0</strong>
-            <small>CONTROL CENTER</small>
+            <strong>UNICENTER</strong>
+            <small>{page === "cockpit" ? "COCKPIT ONE" : "CONTROL CENTER"}</small>
           </div>
           <button onClick={() => setMenu(false)}>
             <X />
@@ -245,8 +248,8 @@ export default function ControlCenter({
           </a>
         </div>
       </aside>
-      <main>
-        <header>
+      <main className={page === "cockpit" ? "cockpit-host" : ""}>
+        {page !== "cockpit" && <header>
           <button className="menu-btn" onClick={() => setMenu(true)}>
             <Menu />
           </button>
@@ -269,8 +272,10 @@ export default function ControlCenter({
             <span>Program starts</span>
             <b>{fmt(start)}</b>
           </div>
-        </header>
-        {page === "context" ? (
+        </header>}
+        {page === "cockpit" ? (
+          <CRMCockpit onNavigate={setPage} />
+        ) : page === "context" ? (
           <ContextDiagram onNavigate={setPage} />
         ) : page === "presales" ? (
           <PresalesBidManagement />
