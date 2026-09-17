@@ -10,6 +10,9 @@ async function snapshot(supabase: Supabase, userId: string) {
     { data: history, error: historyError },
     { data: receivables, error: arError },
     { data: interactions, error: interactionError },
+    { data: materialRequests, error: materialRequestError },
+    { data: materialRequestItems, error: materialRequestItemError },
+    { data: procurementOrders, error: procurementOrderError },
   ] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", userId).single(),
     supabase
@@ -23,9 +26,14 @@ async function snapshot(supabase: Supabase, userId: string) {
       .order("updated_at", { ascending: false }),
     supabase.from("ar_receivables").select("*").order("updated_at", { ascending: false }),
     supabase.from("crm_interactions").select("*").order("interaction_date", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.from("project_material_requests").select("*").order("created_at", { ascending: false }),
+    supabase.from("project_material_request_items").select("*, item:inventory_items(id,sku,item_name,unit)").order("id"),
+    supabase.from("procurement_orders").select("*").order("created_at", { ascending: false }),
   ]);
   const crmMigrationPending = interactionError?.code === "42P01";
-  const error = profileError || projectError || templateError || historyError || arError || (crmMigrationPending ? null : interactionError);
+  const inventorySetupPending = [materialRequestError, materialRequestItemError, procurementOrderError].some((error) => error?.code === "42P01");
+  const inventoryError = [materialRequestError, materialRequestItemError, procurementOrderError].find((error) => error && error.code !== "42P01");
+  const error = profileError || projectError || templateError || historyError || arError || (crmMigrationPending ? null : interactionError) || inventoryError;
   if (error) throw error;
   return {
     role: me.role,
@@ -34,7 +42,11 @@ async function snapshot(supabase: Supabase, userId: string) {
     history: history || [],
     receivables: receivables || [],
     interactions: interactions || [],
+    materialRequests: inventorySetupPending ? [] : materialRequests || [],
+    materialRequestItems: inventorySetupPending ? [] : materialRequestItems || [],
+    procurementOrders: inventorySetupPending ? [] : procurementOrders || [],
     crmMigrationPending,
+    inventorySetupPending,
   };
 }
 

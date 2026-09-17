@@ -4,7 +4,7 @@ Dynamic multi-user Next.js dashboard for the 60-day stabilization program.
 
 ## Setup
 
-1. Run the SQL files in `supabase/migrations` in numeric order. Existing installations should apply only migrations newer than the last installed migration; `014_cockpit_crm.sql` enables Cockpit One CRM metadata and interactions.
+1. Run the SQL files in `supabase/migrations` in numeric order. Existing installations should apply only migrations newer than the last installed migration. `014_cockpit_crm.sql` enables Cockpit One CRM metadata and interactions; `015_project_inventory_procurement.sql` adds project material requests, stock reservation, purchase orders, receiving and release.
 2. Add the variables from `.env.example` to Vercel for Production, Preview, and Development.
 3. Enable Email authentication in Supabase. Add your Vercel production and preview callback URLs under Authentication → URL Configuration.
 4. Deploy through the connected Vercel Git integration.

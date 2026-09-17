@@ -11,13 +11,13 @@ import {
   ClipboardCheck,
   Clock3,
   MessageSquareText,
+  PackageSearch,
   Plus,
   RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
   TrendingUp,
-  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,7 +55,7 @@ const lifecycle = [
   "Post-Sales",
 ] as const;
 type Lifecycle = (typeof lifecycle)[number];
-type Tab = "milestones" | "ar" | "interactions" | "brief";
+type Tab = "milestones" | "materials" | "ar" | "interactions" | "brief";
 type StageTemplate = { stage_name?: string; sequence_no?: number; accountable_group?: string; control_type?: string };
 type Project = {
   id: number;
@@ -79,6 +79,9 @@ type Project = {
 type History = { id: number; project_id: number; status: string; assigned_to?: string; due_date?: string | null; stage?: StageTemplate | null };
 type Receivable = { id: number; customer_name: string; project_name?: string; billing_amount?: number; amount_collected?: number; status?: string; invoice_number?: string; billing_submission_date?: string | null; due_date?: string | null };
 type Interaction = { id: number; project_id: number; interaction_type: string; interaction_date: string; notes: string; created_by_email?: string };
+type MaterialRequest = { id: number; project_id: number; request_no: string; status: string; needed_by?: string | null };
+type MaterialRequestItem = { id: number; request_id: number; description: string; quantity_required: number; quantity_reserved: number; quantity_released: number; procurement_status: string; item?: { sku?: string; item_name?: string; unit?: string } | null };
+type ProcurementOrder = { id: number; material_request_id: number; po_number: string; supplier: string; status: string; expected_delivery?: string | null };
 type CockpitData = {
   role: string;
   projects: Project[];
@@ -86,7 +89,11 @@ type CockpitData = {
   history: History[];
   receivables: Receivable[];
   interactions: Interaction[];
+  materialRequests: MaterialRequest[];
+  materialRequestItems: MaterialRequestItem[];
+  procurementOrders: ProcurementOrder[];
   crmMigrationPending?: boolean;
+  inventorySetupPending?: boolean;
 };
 
 function money(value: number, compact = false) {
@@ -98,6 +105,10 @@ function money(value: number, compact = false) {
     currency: "PHP",
     maximumFractionDigits: 0,
   }).format(value || 0);
+}
+
+function quantity(value: number) {
+  return new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(Number(value || 0));
 }
 
 function initials(name: string) {
@@ -198,6 +209,13 @@ export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) 
     (normal(row.project_name) && normal(row.project_name) === normal(selected.project_name))
   ));
   const selectedInteractions = (data?.interactions || []).filter((row) => row.project_id === selected?.id);
+  const selectedMaterialRequests = (data?.materialRequests || []).filter((row) => row.project_id === selected?.id);
+  const selectedMaterialRequestIds = new Set(selectedMaterialRequests.map((row) => row.id));
+  const selectedMaterialItems = (data?.materialRequestItems || []).filter((row) => selectedMaterialRequestIds.has(row.request_id));
+  const selectedProcurementOrders = (data?.procurementOrders || []).filter((row) => selectedMaterialRequestIds.has(row.material_request_id));
+  const materialRequired = selectedMaterialItems.reduce((sum, row) => sum + Number(row.quantity_required || 0), 0);
+  const materialReady = selectedMaterialItems.reduce((sum, row) => sum + Number(row.quantity_reserved || 0), 0);
+  const materialReadiness = materialRequired ? Math.round(materialReady / materialRequired * 100) : 0;
   const totalPipeline = opportunities.filter((item) => !["Lost", "Cancelled"].includes(item.bid_status || "")).reduce((sum, item) => sum + Number(item.opportunity_value || 0), 0);
   const weightedPipeline = opportunities.reduce((sum, item) => sum + Number(item.opportunity_value || 0) * Number(item.probability || (item.bid_status === "Won" ? 100 : 20)) / 100, 0);
   const totalBilled = (data?.receivables || []).reduce((sum, row) => sum + Number(row.billing_amount || 0), 0);
@@ -269,6 +287,9 @@ export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) 
       {data?.crmMigrationPending && (
         <div className="cockpit-notice"><Sparkles />Cockpit data is live. Apply migration 014 to enable CRM notes and customer interactions.</div>
       )}
+      {data?.inventorySetupPending && (
+        <div className="cockpit-notice"><PackageSearch />Apply migration 015 to activate project inventory and procurement.</div>
+      )}
 
       <div className="cockpit-kpis">
         {kpis.map(([label, value, meta, Icon]) => (
@@ -316,10 +337,11 @@ export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) 
                 <div className="opportunity-main">
                   <div className="next-commitment"><Clock3 /><div><small>NEXT COMMITMENT</small><b>{selected.next_action || currentStage(selected)?.stage_name || "Update the next customer commitment"}</b><p>{selected.next_action_date ? `Due ${selected.next_action_date}` : "No committed date"} · Owner: {selected.owner || "Unassigned"}</p></div></div>
                   <div className="cockpit-tabs">
-                    {(["milestones", "ar", "interactions", "brief"] as Tab[]).map((value) => <button key={value} className={tab === value ? "active" : ""} onClick={() => setTab(value)}>{value === "ar" ? "Billing & AR" : value[0].toUpperCase() + value.slice(1)}</button>)}
+                    {(["milestones", "materials", "ar", "interactions", "brief"] as Tab[]).map((value) => <button key={value} className={tab === value ? "active" : ""} onClick={() => setTab(value)}>{value === "ar" ? "Billing & AR" : value[0].toUpperCase() + value.slice(1)}</button>)}
                   </div>
 
                   {tab === "milestones" && <div className="milestone-list">{selectedHistory.map((row) => <article key={row.id}><span className={normal(row.status).replace(/\s/g, "-")} /> <div><b>{row.stage?.stage_name}</b><small>{row.stage?.accountable_group} · {row.stage?.control_type}</small></div><i>{row.status}</i></article>)}{!selectedHistory.length && <p className="tab-empty">No SOP milestones found.</p>}</div>}
+                  {tab === "materials" && <div className="material-readiness"><div className="material-readiness-summary"><div><small>PROJECT MATERIAL READINESS</small><b>{materialReadiness}%</b><p>{quantity(materialReady)} of {quantity(materialRequired)} units reserved or ready</p></div><div className="material-progress"><span style={{ width: `${materialReadiness}%` }} /></div></div>{selectedMaterialRequests.map((request) => <article key={request.id}><div><b>{request.request_no}</b><small>{request.status} · Needed {request.needed_by || "not set"}</small></div><span>{selectedMaterialItems.filter((item) => item.request_id === request.id && Number(item.quantity_required) > Number(item.quantity_reserved)).length} shortages</span></article>)}{!selectedMaterialRequests.length ? <div className="tab-empty"><PackageSearch /><p>No project material request has been created.</p></div> : null}<Button size="sm" variant="outline" onClick={() => onNavigate("procurement")}>Open Inventory & Procurement<ChevronRight /></Button></div>}
                   {tab === "ar" && <div className="ar-link-list">{selectedAr.map((row) => <article key={row.id}><div><small>{row.invoice_number || "Billing record"}</small><b>{money(Number(row.billing_amount || 0))}</b><p>{row.status} · Due {row.due_date || "not set"}</p></div><div><small>Outstanding</small><strong>{money(Math.max(0, Number(row.billing_amount || 0) - Number(row.amount_collected || 0)))}</strong></div></article>)}{!selectedAr.length && <div className="tab-empty"><CircleDollarSign /><p>No AR record is linked by customer or project name.</p><Button size="sm" variant="outline" onClick={() => onNavigate("ar-monitor")}>Open AR Monitor</Button></div>}</div>}
                   {tab === "interactions" && <div className="interaction-list">{selectedInteractions.map((row) => <article key={row.id}><div><b>{row.interaction_type}</b><small>{row.interaction_date}</small></div><p>{row.notes}</p><small>Logged by {row.created_by_email || "Unicenter team"}</small></article>)}{!selectedInteractions.length && <p className="tab-empty">No customer interactions logged yet.</p>}</div>}
                   {tab === "brief" && <div className="brief-card"><small>CUSTOMER OUTCOME</small><p>{selected.opportunity_summary || selected.remarks || "No opportunity brief has been added."}</p></div>}
@@ -337,7 +359,7 @@ export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) 
         <aside className="cockpit-insights">
           <article><div><span><small>FORECAST</small><b>Weighted pipeline</b></span><TrendingUp /></div><strong>{money(weightedPipeline, true)}</strong><p>Probability-adjusted opportunity value</p><div className="forecast-bars"><i style={{ width: `${Math.min(100, totalPipeline ? weightedPipeline / totalPipeline * 100 : 0)}%` }} /></div></article>
           <article><div><span><small>CASH VISIBILITY</small><b>Accounts receivable</b></span><CircleDollarSign /></div><strong>{money(totalOutstanding, true)}</strong><p>{data?.receivables.filter((x) => x.status !== "Paid / Closed").length || 0} open collection records</p><Button size="sm" variant="outline" onClick={() => onNavigate("ar-monitor")}>Open AR Monitor<ChevronRight /></Button></article>
-          <article className="accountability"><UsersRound /><b>Accountability pulse</b><p>{data?.history.filter((x) => x.assigned_to && x.due_date).length || 0} milestones have an owner and committed date.</p></article>
+          <article className="accountability"><PackageSearch /><b>Material readiness</b><strong>{materialReadiness}%</strong><p>{selectedProcurementOrders.filter((order) => !["Received", "Cancelled"].includes(order.status)).length} open purchase orders for the selected project.</p><Button size="sm" variant="outline" onClick={() => onNavigate("procurement")}>Open project materials<ChevronRight /></Button></article>
         </aside>
       </div>
 

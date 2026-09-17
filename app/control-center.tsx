@@ -28,6 +28,7 @@ import ARExecutiveSummary from "@/app/ar-executive-summary";
 import ContextDiagram from "@/app/context-diagram";
 import CRMCockpit from "@/app/crm-cockpit";
 import PresalesBidManagement from "@/app/presales-bid-management";
+import ProjectInventory from "@/app/project-inventory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -87,7 +88,7 @@ const nav = [
   ["assessment", "Rapid Assessment", Gauge],
   ["finance", "Finance & AR (30-Day)", Landmark],
   ["ar-monitor", "AR Daily Monitor", ReceiptText],
-  ["procurement", "Procurement & Inventory", PackageSearch],
+  ["procurement", "Inventory & Procurement", PackageSearch],
   ["qbo", "QBO Roadmap", Activity],
   ["parameters", "Parameters", Settings],
   ["users", "Users & Roles", Users],
@@ -259,8 +260,10 @@ export default function ControlCenter({
                 ? "CUSTOMER INTERACTION FRAMEWORK"
                 : page === "presales"
                   ? "SOP WORKFLOW & KPI MONITORING"
-                : page === "finance" || page === "procurement"
+                : page === "finance"
                 ? "30-DAY ASSESSMENT PROGRAM"
+                : page === "procurement"
+                  ? "PROJECT MATERIALS & PURCHASING"
                 : page === "ar-monitor"
                   ? "DAILY COLLECTION CONTROL"
                   : "60-DAY STABILIZATION PROGRAM"}
@@ -287,7 +290,9 @@ export default function ControlCenter({
           <UserAdmin data={data} save={save} />
         ) : page === "ar-monitor" ? (
           <ARDailyMonitor />
-        ) : page === "finance" || page === "procurement" ? (
+        ) : page === "procurement" ? (
+          <ProjectInventory />
+        ) : page === "finance" ? (
           <AssessmentModule
             page={page}
             rows={rows.filter((r) => r.type === page)}
