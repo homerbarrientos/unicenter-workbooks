@@ -175,3 +175,96 @@ body {
 @media(max-width:850px){.material-line{grid-template-columns:minmax(0,1fr) 90px 34px}}
 .crm-settings-tabs{display:flex;gap:8px;padding:18px 28px 0}.crm-settings-tabs button{gap:7px}.crm-settings-tabs svg{width:15px}.reports-coming-soon{min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#718095}.reports-coming-soon>svg{width:42px;height:42px;color:#15958a;margin-bottom:12px}.reports-coming-soon h3{margin:0;color:#173f60}.reports-coming-soon p{max-width:460px;font-size:12px}.crm-settings-tabs+.workspace{padding-top:14px}
 @media(max-width:700px){.crm-settings-tabs{padding:14px 16px 0;display:grid;grid-template-columns:1fr 1fr}.crm-settings-tabs button{width:100%}}
+
+/* Cockpit One visual system across every operational module */
+.module-host{min-height:100vh;background:radial-gradient(circle at 82% -12%,#123458 0,transparent 34%),#07111f;color:#dbe7f2}
+.module-host>header{height:78px;background:#081525e8;border-bottom:1px solid #ffffff12;color:#fff;backdrop-filter:blur(12px)}
+.module-host>header p{color:#67e8f9;font-size:9px;letter-spacing:.2em}.module-host>header h1{color:#fff;font-size:20px}
+.module-host .day-pill{background:#67e8f912;border:1px solid #67e8f926;color:#a5f3fc}
+.module-host .workspace,.module-host .inventory-workspace{color:#dbe7f2}
+.module-host .section-intro h2{color:#fff}.module-host .section-intro p{color:#8293a7}
+
+.module-host .ar-summary article,.module-host .presales-summary article,.module-host .inventory-summary article,
+.module-host .data-card,.module-host .ar-management article,.module-host .request-list,.module-host .request-detail,
+.module-host .inventory-card,.module-host .parameter-grid article,.module-host .reports-coming-soon{
+  background:#0b192b;border-color:#ffffff12;box-shadow:0 8px 24px #00000022;color:#dbe7f2
+}
+.module-host .ar-summary article,.module-host .presales-summary article,.module-host .inventory-summary article{border-top:1px solid #ffffff12}
+.module-host .ar-summary article:hover,.module-host .presales-summary article:hover,.module-host .inventory-summary article:hover{border-color:#67e8f933}
+.module-host .ar-summary svg,.module-host .presales-summary article>svg,.module-host .inventory-summary svg{color:#67e8f9}
+.module-host .ar-summary span,.module-host .presales-summary article>span,.module-host .inventory-summary span{color:#8293a7}
+.module-host .ar-summary b,.module-host .presales-summary article>b,.module-host .inventory-summary strong{color:#fff}
+
+.module-host .toolbar input,.module-host .inventory-search input,.module-host [data-slot=select-trigger],
+.module-host .parameter-grid input{background:#ffffff08;border-color:#ffffff16;color:#e6edf5}
+.module-host input::placeholder,.module-host textarea::placeholder{color:#607287}
+.module-host .search svg,.module-host .inventory-search svg{color:#607287}
+.module-host .toolbar button,.module-host .request-actions button,.module-host .linked-orders button,
+.module-host .crm-settings-tabs button,.module-host .inventory-toolbar>button{
+  border-color:#ffffff1a;background:#ffffff08;color:#dbe7f2
+}
+.module-host .toolbar button:hover,.module-host .request-actions button:hover,.module-host .crm-settings-tabs button:hover,
+.module-host .inventory-toolbar>button:hover{background:#ffffff12;color:#fff}
+.module-host .toolbar button:last-child,.module-host .request-actions button:not([data-variant=outline]),
+.module-host .inventory-toolbar>button:last-child,.module-host .crm-settings-tabs button[data-variant=default]{background:#67e8f9;color:#07111f;border-color:#67e8f9}
+
+.module-host .data-card th,.module-host .inventory-table th,.module-host .kpi-report-table th,
+.module-host .ar-management h3{background:#0e2941;color:#cffafe;border-color:#ffffff12}
+.module-host .data-card td,.module-host .inventory-table td,.module-host .kpi-report-table td,
+.module-host .ar-management th,.module-host .ar-management td{border-bottom-color:#ffffff0e;color:#c4d0dd}
+.module-host .data-card tbody tr:hover,.module-host .inventory-table tbody tr:hover{background:#67e8f908}
+.module-host .data-card td:first-child b,.module-host .inventory-table td b{color:#fff}
+.module-host .data-card td:first-child span,.module-host .data-card td small,.module-host .inventory-table td span{color:#718298}
+.module-host .ar-management th{background:#ffffff08;color:#8fa3b8}
+.module-host .ar-management .danger tbody tr:has(td:nth-child(2):not(:empty)){background:#fb71850a}
+
+.module-host .ar-exception{background:#fbbf240d;border-color:#fbbf2433;color:#fde68a}
+.module-host .ar-exception span{color:#d3aa58}.module-host .ar-exception svg{color:#fbbf24}
+.module-host .presales-progress{background:#ffffff12}.module-host .presales-progress i{background:#67e8f9}
+.module-host .presales-progress b{color:#dbe7f2}
+.module-host .request-list>button{color:#cbd7e5}.module-host .request-list>button:hover{background:#ffffff08}
+.module-host .request-list>button.selected{background:#67e8f914;border-color:#67e8f92e;box-shadow:inset 3px 0 #67e8f9}
+.module-host .request-list b,.module-host .request-list strong{color:#fff}.module-host .request-list p,.module-host .request-list button>small{color:#718298}
+.module-host .request-list button>div{background:#ffffff12}.module-host .request-list button>div span{background:#67e8f9}
+.module-host .request-detail-head{border-bottom-color:#ffffff12}.module-host .request-detail-head h2{color:#fff}
+.module-host .request-detail-head p,.module-host .request-detail-head small{color:#718298}
+.module-host .request-meta span{background:#ffffff06;border:1px solid #ffffff0b}.module-host .request-meta small{color:#607287}.module-host .request-meta b{color:#dbe7f2}
+.module-host .linked-orders h3{color:#8293a7}.module-host .linked-orders article{background:#ffffff06;border-color:#ffffff10}
+.module-host .linked-orders b{color:#fff}.module-host .linked-orders p{color:#718298}.module-host .linked-orders span{color:#a5f3fc}
+.module-host .inventory-tabs{background:#ffffff0a;border:1px solid #ffffff10}
+.module-host .inventory-tabs button{color:#8293a7}.module-host .inventory-tabs button.active{background:#67e8f91c;color:#cffafe;box-shadow:none}
+.module-host .inventory-loading,.module-host .inventory-empty,.module-host .reports-coming-soon{color:#718298}
+.module-host .inventory-loading svg,.module-host .inventory-empty svg,.module-host .reports-coming-soon>svg{color:#67e8f9}
+.module-host .reports-coming-soon h3{color:#fff}
+
+.module-host .parameter-grid small{color:#67e8f9}.module-host .parameter-grid h3{color:#fff}.module-host .parameter-grid code{color:#607287}
+.module-host .crm-settings-tabs{border-bottom:1px solid #ffffff0d;padding-bottom:14px}
+.module-host .crm-settings-tabs button[data-variant=default]{box-shadow:0 0 18px #67e8f920}
+
+[data-slot=dialog-content]:has(.ar-dialog),.ar-dialog,[data-slot=dialog-content]:has(.presales-dialog),.presales-dialog,
+[data-slot=dialog-content]:has(.inventory-form),.material-dialog,.tracker-dialog,.kpi-report-dialog,.payment-ledger-dialog{
+  background:#0b192b!important;border-color:#ffffff1a!important;color:#e6edf5!important
+}
+.ar-dialog [data-slot=dialog-description],.presales-dialog [data-slot=dialog-description],.material-dialog [data-slot=dialog-description],
+.tracker-dialog [data-slot=dialog-description],.kpi-report-dialog [data-slot=dialog-description],.payment-ledger-dialog [data-slot=dialog-description]{color:#8293a7}
+.ar-dialog input,.ar-dialog textarea,.presales-dialog input,.presales-dialog textarea,.material-dialog input,.material-dialog textarea,
+.material-dialog select,.tracker-dialog input,.tracker-dialog textarea,.tracker-dialog select,.payment-ledger-dialog input,.payment-ledger-dialog textarea{
+  background:#ffffff08!important;border-color:#ffffff1a!important;color:#fff!important
+}
+.ar-dialog label,.presales-dialog label,.material-dialog label,.tracker-dialog label,.payment-ledger-dialog label{color:#a9b8c9}
+.ar-dialog button,.presales-dialog button,.material-dialog button,.tracker-dialog button,.payment-ledger-dialog button{border-color:#ffffff1a}
+.tracker-meta,.stage-guidance,.ar-computed,.ledger-reference{background:#ffffff06!important;border:1px solid #ffffff0e}
+.tracker-meta b,.ar-computed b,.ledger-reference b,.material-lines-head b{color:#fff}.tracker-meta small,.ar-computed span,.ledger-reference span{color:#8293a7}
+.sop-timeline article{background:#ffffff06;border-color:#ffffff12;color:#dbe7f2}.sop-timeline article.in-progress,.sop-timeline article.blocked,.sop-timeline article.late{background:#ffffff08}
+.sop-timeline h3{color:#fff}.sop-timeline p,.sop-timeline small,.stage-dates{color:#8293a7}
+.attachment-box,.document-checklist,.material-lines,.payment-entry,.ledger-table,.kpi-report-table{border-color:#ffffff14}
+.attachment-heading,.document-checklist>div{background:#ffffff06}.attachment-list article,.document-checklist>label,.ledger-table td{border-color:#ffffff0e}
+.attachment-list a{color:#a5f3fc}.document-checklist>div b,.payment-entry h3,.ledger-heading h3{color:#fff}
+[data-slot=select-content]{background:#0b192b!important;border-color:#ffffff1a!important;color:#e6edf5!important}
+[data-slot=select-item]:focus{background:#67e8f91c!important;color:#cffafe!important}
+
+@media print{
+  .module-host{background:#fff!important;color:#172033!important}.module-host>header{background:#fff!important;color:#172033!important}
+  .module-host .data-card,.module-host .ar-summary article,.module-host .ar-management article{background:#fff!important;color:#172033!important;border-color:#dce3ea!important}
+  .module-host .data-card td,.module-host .ar-management td{color:#172033!important;border-color:#e7ebef!important}
+}
