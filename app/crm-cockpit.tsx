@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowUpRight,
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-const lifecycle = [
+export const crmLifecycle = [
   "Lead",
   "Discovery",
   "Scoping",
@@ -54,7 +54,8 @@ const lifecycle = [
   "Collection",
   "Post-Sales",
 ] as const;
-type Lifecycle = (typeof lifecycle)[number];
+export type Lifecycle = (typeof crmLifecycle)[number];
+export type LifecycleSummaryItem = { stage: Lifecycle; opportunityValue: number };
 type Tab = "milestones" | "materials" | "ar" | "interactions" | "brief";
 type StageTemplate = { stage_name?: string; sequence_no?: number; accountable_group?: string; control_type?: string };
 type Project = {
@@ -159,19 +160,28 @@ function displayStatus(project: Project) {
   return "On track";
 }
 
-export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) => void }) {
+export default function CRMCockpit({
+  onNavigate,
+  stageFilter,
+  onStageFilterChange,
+  onLifecycleUpdate,
+}: {
+  onNavigate: (page: string) => void;
+  stageFilter: Lifecycle | "All";
+  onStageFilterChange: (stage: Lifecycle | "All") => void;
+  onLifecycleUpdate: (items: LifecycleSummaryItem[]) => void;
+}) {
   const [data, setData] = useState<CockpitData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [filter, setFilter] = useState<Lifecycle | "All">("All");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<Tab>("milestones");
   const [opportunityOpen, setOpportunityOpen] = useState(false);
   const [interactionOpen, setInteractionOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -179,28 +189,32 @@ export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) 
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not load Cockpit One.");
       setData(payload);
+      onLifecycleUpdate((payload.projects || []).map((project: Project) => ({
+        stage: lifecycleStage(project, payload.receivables || []),
+        opportunityValue: Number(project.opportunity_value || 0),
+      })));
       setSelectedId((current) => current && payload.projects.some((p: Project) => p.id === current) ? current : payload.projects[0]?.id ?? null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load Cockpit One.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [onLifecycleUpdate]);
 
-  // The initial request synchronizes this client workspace with Supabase.
+  // The initial request hydrates this client workspace from Supabase.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const opportunities = useMemo(() => (data?.projects || []).map((project) => ({
     ...project,
     lifecycle: lifecycleStage(project, data?.receivables || []),
     cockpitStatus: displayStatus(project),
   })), [data]);
-  const selected = opportunities.find((item) => item.id === selectedId) || opportunities[0];
   const filtered = opportunities.filter((item) => {
     const term = query.trim().toLowerCase();
-    return (filter === "All" || item.lifecycle === filter) && (!term || `${item.customer_name} ${item.project_name} ${item.owner}`.toLowerCase().includes(term));
+    return (stageFilter === "All" || item.lifecycle === stageFilter) && (!term || `${item.customer_name} ${item.project_name} ${item.owner}`.toLowerCase().includes(term));
   });
+  const selected = filtered.find((item) => item.id === selectedId) || filtered[0] || opportunities[0];
   const selectedHistory = (data?.history || [])
     .filter((row) => row.project_id === selected?.id)
     .sort((a, b) => Number(a.stage?.sequence_no || 0) - Number(b.stage?.sequence_no || 0));
@@ -233,6 +247,10 @@ export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) 
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not save changes.");
       setData(payload);
+      onLifecycleUpdate((payload.projects || []).map((project: Project) => ({
+        stage: lifecycleStage(project, payload.receivables || []),
+        opportunityValue: Number(project.opportunity_value || 0),
+      })));
       return true;
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Could not save changes.");
@@ -301,9 +319,9 @@ export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) 
         <section className="pipeline-panel">
           <div className="panel-head"><div><small>PIPELINE</small><b>{filtered.length} customer records</b></div>{canEdit && <Button size="sm" onClick={() => setOpportunityOpen(true)}><Plus />Add</Button>}</div>
           <div className="cockpit-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search customer or project" /></div>
-          <Select value={filter} onValueChange={(value) => setFilter(value as Lifecycle | "All")}>
+          <Select value={stageFilter} onValueChange={(value) => onStageFilterChange(value as Lifecycle | "All")}>
             <SelectTrigger className="cockpit-filter"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="All">All lifecycle stages</SelectItem>{lifecycle.map((stage) => <SelectItem key={stage} value={stage}>{stage}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="All">All lifecycle stages</SelectItem>{crmLifecycle.map((stage) => <SelectItem key={stage} value={stage}>{stage}</SelectItem>)}</SelectContent>
           </Select>
           <div className="pipeline-list">
             {filtered.map((item) => (
@@ -325,9 +343,9 @@ export default function CRMCockpit({ onNavigate }: { onNavigate: (page: string) 
                 <div className="opportunity-title"><span className="customer-avatar large">{initials(selected.customer_name)}</span><div><span><h2>{selected.customer_name}</h2><i className={`status-${normal(selected.cockpitStatus).replace(/\s/g, "-")}`}>{selected.cockpitStatus}</i></span><p>{selected.project_name}</p></div></div>
                 <div className="opportunity-actions">{canEdit && <Button size="sm" variant="outline" onClick={() => setInteractionOpen(true)} disabled={data?.crmMigrationPending}><MessageSquareText />Log interaction</Button>}<Button size="sm" onClick={() => onNavigate("presales")}>Open SOP workflow<ChevronRight /></Button></div>
                 <div className="lifecycle-track">
-                  {lifecycle.map((stage, index) => {
+                  {crmLifecycle.map((stage, index) => {
                     const active = stage === selected.lifecycle;
-                    const complete = index < lifecycle.indexOf(selected.lifecycle);
+                    const complete = index < crmLifecycle.indexOf(selected.lifecycle);
                     return <div key={stage} className={active ? "active" : complete ? "complete" : ""}><span>{index + 1}</span><small>{stage}</small></div>;
                   })}
                 </div>

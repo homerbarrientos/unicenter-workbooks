@@ -268,3 +268,17 @@ body {
   .module-host .data-card,.module-host .ar-summary article,.module-host .ar-management article{background:#fff!important;color:#172033!important;border-color:#dce3ea!important}
   .module-host .data-card td,.module-host .ar-management td{color:#172033!important;border-color:#e7ebef!important}
 }
+
+/* Lifecycle navigation */
+.sidebar-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:3px;scrollbar-width:thin;scrollbar-color:#67e8f933 transparent}
+.sidebar-scroll::-webkit-scrollbar{width:5px}.sidebar-scroll::-webkit-scrollbar-thumb{background:#67e8f933;border-radius:99px}
+.sidebar .primary-nav{margin-top:18px}.sidebar .workspace-nav{margin:18px 0 8px;padding-top:14px;border-top:1px solid #ffffff10}
+.workspace-nav>small{display:block;padding:0 12px 7px;color:#52667d;font-size:8px;font-weight:800;letter-spacing:.18em}
+.lifecycle-nav{display:grid;gap:8px;margin-top:14px}
+.lifecycle-nav section{display:grid}.lifecycle-nav .lifecycle-group{display:grid;grid-template-columns:18px 1fr auto 14px;align-items:center;gap:8px;width:100%;padding:8px 10px;border:0;background:transparent;color:#6f8298;text-align:left;cursor:pointer}
+.lifecycle-nav .lifecycle-group:hover{color:#dbe7f2}.lifecycle-nav .lifecycle-group svg{width:14px}.lifecycle-nav .lifecycle-group svg:last-child{width:12px;transition:transform .16s}.lifecycle-nav .lifecycle-group svg:last-child.open{transform:rotate(180deg)}
+.lifecycle-nav .lifecycle-group span{font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase}.lifecycle-nav .lifecycle-group b{font-size:9px;color:#71859b}
+.lifecycle-stages{display:grid;gap:2px;padding:0 4px 2px 10px}.lifecycle-stages button{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;border:0;background:transparent;color:#8ea0b6;padding:8px 10px 8px 28px;border-radius:8px;text-align:left;font-size:11px;cursor:pointer;position:relative}
+.lifecycle-stages button:before{content:"";position:absolute;left:12px;width:5px;height:5px;border-radius:50%;background:#31445a}.lifecycle-stages button:hover{background:#ffffff08;color:#fff}.lifecycle-stages button.active{background:#67e8f914;color:#cffafe;box-shadow:inset 3px 0 #67e8f9}.lifecycle-stages button.active:before{background:#67e8f9;box-shadow:0 0 8px #67e8f966}
+.lifecycle-stages button b{min-width:20px;padding:2px 6px;border-radius:999px;background:#ffffff0a;color:#8295aa;font-size:9px;text-align:center}.lifecycle-stages button.active b{background:#67e8f91c;color:#a5f3fc}
+@media(max-width:900px){.sidebar-scroll{max-height:calc(100vh - 190px)}}
