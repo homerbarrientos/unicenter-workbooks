@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   BriefcaseBusiness,
+  ChevronDown,
   ChevronRight,
   Clock3,
   LayoutDashboard,
@@ -19,7 +20,7 @@ import {
 import ARDailyMonitor from "@/app/ar-daily-monitor";
 import ARExecutiveSummary from "@/app/ar-executive-summary";
 import ContextDiagram from "@/app/context-diagram";
-import CRMCockpit from "@/app/crm-cockpit";
+import CRMCockpit, { type Lifecycle, type LifecycleSummaryItem } from "@/app/crm-cockpit";
 import PresalesBidManagement from "@/app/presales-bid-management";
 import ProjectInventory from "@/app/project-inventory";
 import { Button } from "@/components/ui/button";
@@ -70,14 +71,19 @@ type R = {
   criticalControl?: boolean;
   reviewNotes?: string;
 };
-const nav = [
-  ["cockpit", "Cockpit One", LayoutDashboard],
+const workspaceNav = [
   ["presales", "Opportunities & SOP", BriefcaseBusiness],
   ["ar-monitor", "Billing & Collections", ReceiptText],
   ["procurement", "Inventory & Procurement", PackageSearch],
   ["reports", "Reports", BarChart3],
   ["crm-settings", "CRM Settings", Settings],
 ] as const;
+const lifecycleGroups: Array<{ name: string; stages: Lifecycle[]; Icon: typeof BriefcaseBusiness }> = [
+  { name: "Opportunity", stages: ["Lead", "Discovery", "Scoping", "Proposal"], Icon: BriefcaseBusiness },
+  { name: "Commercial", stages: ["TOR incubation", "Bidding", "Awarded"], Icon: BarChart3 },
+  { name: "Delivery", stages: ["Mobilization", "Procurement", "Delivery", "Acceptance"], Icon: PackageSearch },
+  { name: "Cash & Service", stages: ["Billing", "Collection", "Post-Sales"], Icon: ReceiptText },
+];
 const blank: R = {
   type: "plan",
   code: "",
@@ -118,6 +124,14 @@ export default function ControlCenter({
   const [data, setData] = useState<any>(),
     [page, setPage] = useState("cockpit"),
     [menu, setMenu] = useState(false),
+    [cockpitStage, setCockpitStage] = useState<Lifecycle | "All">("All"),
+    [lifecycleSummary, setLifecycleSummary] = useState<LifecycleSummaryItem[]>([]),
+    [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+      Opportunity: true,
+      Commercial: true,
+      Delivery: true,
+      "Cash & Service": true,
+    }),
     [edit, setEdit] = useState<R | null>(null),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("All");
@@ -135,6 +149,11 @@ export default function ControlCenter({
       ),
     [data],
   );
+  const stageCounts = useMemo(() => {
+    const counts = new Map<Lifecycle, number>();
+    for (const item of lifecycleSummary) counts.set(item.stage, (counts.get(item.stage) || 0) + 1);
+    return counts;
+  }, [lifecycleSummary]);
   const rows: R[] = data?.records || [];
   const start = new Date(params.program_start || "2026-09-07");
   const due = (d: number) => new Date(start.getTime() + (d - 1) * 86400000);
@@ -203,26 +222,61 @@ export default function ControlCenter({
             <X />
           </button>
         </div>
-        <nav>
-          {nav.map(([id, label, Icon]) =>
-            id === "crm-settings" && data.me.role !== "Admin" ? null : (
-              <button
-                key={id}
-                className={page === id ? "active" : ""}
-                onClick={() => {
-                  setPage(id);
-                  setMenu(false);
-                  setFilter("All");
-                  setQuery("");
-                }}
-              >
-                <Icon />
-                <span>{label}</span>
-                <ChevronRight />
-              </button>
-            ),
-          )}
-        </nav>
+        <div className="sidebar-scroll">
+          <nav className="primary-nav">
+            <button
+              className={page === "cockpit" && cockpitStage === "All" ? "active" : ""}
+              onClick={() => { setPage("cockpit"); setCockpitStage("All"); setMenu(false); }}
+            >
+              <LayoutDashboard /><span>Executive Dashboard</span><ChevronRight />
+            </button>
+          </nav>
+          <div className="lifecycle-nav">
+            {lifecycleGroups.map(({ name, stages, Icon }, groupIndex) => {
+              const groupCount = stages.reduce((sum, stage) => sum + (stageCounts.get(stage) || 0), 0);
+              const expanded = expandedGroups[name];
+              return (
+                <section key={name}>
+                  <button
+                    className="lifecycle-group"
+                    aria-expanded={expanded}
+                    onClick={() => setExpandedGroups((current) => ({ ...current, [name]: !current[name] }))}
+                  >
+                    <Icon /><span>{groupIndex + 1}. {name}</span><b>{groupCount}</b><ChevronDown className={expanded ? "open" : ""} />
+                  </button>
+                  {expanded ? <div className="lifecycle-stages">
+                    {stages.map((stage) => <button
+                      key={stage}
+                      className={page === "cockpit" && cockpitStage === stage ? "active" : ""}
+                      onClick={() => { setPage("cockpit"); setCockpitStage(stage); setMenu(false); }}
+                    >
+                      <span>{stage}</span><b>{stageCounts.get(stage) || 0}</b>
+                    </button>)}
+                  </div> : null}
+                </section>
+              );
+            })}
+          </div>
+          <nav className="workspace-nav">
+            <small>WORKSPACES</small>
+            {workspaceNav.map(([id, label, Icon]) =>
+              id === "crm-settings" && data.me.role !== "Admin" ? null : (
+                <button
+                  key={id}
+                  className={page === id ? "active" : ""}
+                  onClick={() => {
+                    setPage(id);
+                    setMenu(false);
+                    setFilter("All");
+                    setQuery("");
+                  }}
+                >
+                  <Icon /><span>{label}</span><ChevronRight />
+                </button>
+              ),
+            )}
+          </nav>
+        </div>
         <div className="side-foot">
           <div className="avatar">{user.displayName[0]}</div>
           <div>
@@ -257,7 +311,7 @@ export default function ControlCenter({
                   ? "DAILY COLLECTION CONTROL"
                   : "60-DAY STABILIZATION PROGRAM"}
             </p>
-            <h1>{nav.find((n) => n[0] === page)?.[1]}</h1>
+            <h1>{workspaceNav.find((n) => n[0] === page)?.[1]}</h1>
           </div>
           <div className="day-pill">
             <Clock3 />
@@ -266,7 +320,12 @@ export default function ControlCenter({
           </div>
         </header>}
         {page === "cockpit" ? (
-          <CRMCockpit onNavigate={setPage} />
+          <CRMCockpit
+            onNavigate={setPage}
+            stageFilter={cockpitStage}
+            onStageFilterChange={setCockpitStage}
+            onLifecycleUpdate={setLifecycleSummary}
+          />
         ) : page === "context" ? (
           <ContextDiagram onNavigate={setPage} />
         ) : page === "presales" ? (
